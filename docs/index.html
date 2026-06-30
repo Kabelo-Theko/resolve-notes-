@@ -179,7 +179,14 @@ function articleHTML(a){
 function wireArticle(a){
   const cp=$("#copymd"); if(cp)cp.addEventListener("click",async()=>{await navigator.clipboard.writeText(markdown(a));cp.textContent="Copied";setTimeout(()=>cp.textContent="Copy Markdown",1400);});
   const dl=$("#dlmd"); if(dl)dl.addEventListener("click",()=>{const blob=new Blob([markdown(a)],{type:"text/markdown"});const el=document.createElement("a");el.href=URL.createObjectURL(blob);el.download=(a.title||"kb-article").toLowerCase().replace(/[^a-z0-9]+/g,"-").slice(0,50)+".md";el.click();URL.revokeObjectURL(el.href);});
-  const sv=$("#savelib"); if(sv)sv.addEventListener("click",async()=>{await addArticle({...a,id:"KB-"+Date.now(),created_at:new Date().toISOString()});sv.textContent="Saved to library";setTimeout(()=>sv.textContent="Save to library",1400);});
+  const sv=$("#savelib"); if(sv)sv.addEventListener("click",async()=>{
+    const existing=await listArticles();
+    const aTags=new Set((a.tags||[]).map(t=>String(t).toLowerCase()));
+    const dup=existing.find(x=>{const xt=(x.tags||[]).map(t=>String(t).toLowerCase());const overlap=xt.filter(t=>aTags.has(t)).length;return overlap>=2||(x.title&&a.title&&x.title.toLowerCase()===a.title.toLowerCase());});
+    if(dup && !confirm(`A similar article already exists:\n\n"${dup.title}"\n\nSave this as a new article anyway?`)) return;
+    await addArticle({...a,id:"KB-"+Date.now(),created_at:new Date().toISOString()});
+    sv.textContent="Saved to library";setTimeout(()=>sv.textContent="Save to library",1400);
+  });
 }
 
 function generateView(){
@@ -193,12 +200,27 @@ function generateView(){
       <label for="aimodel">AI model</label>
       <select id="aimodel"><option value="flash">DeepSeek v4 Flash (fast)</option><option value="pro">DeepSeek v4 Pro (best quality)</option><option value="minimax">MiniMax M3</option></select>
       <div class="rowb"><button class="btn btn-primary" id="gen">Generate article</button><button class="btn btn-ghost" id="ex">See an example</button></div>
+      <div style="border-top:1px solid var(--line);margin:18px 0 0;padding-top:15px">
+        <label for="thread">Or paste a ticket thread</label>
+        <textarea id="thread" placeholder="Paste an email or chat thread; the AI derives the issue, cause and fix"></textarea>
+        <div class="rowb"><button class="btn btn-ghost" id="genthread">Generate from thread</button></div>
+      </div>
     </section>
     <section class="out" id="out">${state.article?articleHTML(state.article):emptyGen()}</section>
   </div></div>`;
   if(state.article) wireArticle(state.article);
   $("#ex").addEventListener("click",()=>{state.article=SAMPLE;$("#out").innerHTML=articleHTML(SAMPLE);wireArticle(SAMPLE);});
   $("#gen").addEventListener("click",gen);
+  const gt=$("#genthread"); if(gt)gt.addEventListener("click",genThread);
+}
+async function genThread(){
+  const out=$("#out"); const thread=$("#thread").value.trim();
+  if(!thread){out.innerHTML=`<div class="empty"><h3>Paste a thread first.</h3><p>Drop an email or chat thread in the box, then generate.</p></div>`;return;}
+  out.innerHTML=`<div class="empty"><h3>Reading the thread…</h3><p class="note">Deriving the issue, root cause and fix.</p></div>`;
+  try{
+    const r=await fetch("/api/ai",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({task:"thread",thread,model:($("#aimodel")?.value||"flash")})});
+    if(!r.ok) throw new Error(); const a=await r.json(); state.article=a; out.innerHTML=articleHTML(a); wireArticle(a);
+  }catch(e){ out.innerHTML=`<div class="empty"><h3>AI backend not enabled yet.</h3><p>Set <code>NVIDIA_API_KEY</code> in the Vercel project to generate from a thread.</p></div>`; }
 }
 function emptyGen(){return `<div class="empty enter"><h3>The article appears here.</h3><p>Fill in the resolution on the left and generate. You will get a structured KB article you can copy as Markdown, download, or save to your library.</p><p class="note">Tip: hit "See an example" to view the format before you write anything.</p></div>`;}
 async function gen(){
