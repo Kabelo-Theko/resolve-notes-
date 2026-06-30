@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>resolve-notes — turn a fix into a KB article</title>
+<meta name="description" content="Turn a resolved ticket into a clean knowledge base article: symptoms, root cause, fix steps, prevention and tags." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600;6..72,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#f7f8f6; --surface:#ffffff; --line:#e6e8e3; --ink:#1b211d; --soft:#51584f; --mute:#8a9089;
+    --accent:#15735c; --accent-press:#0f5a47; --paper:#fcfdfb;
+    --radius:12px; --serif:"Newsreader",Georgia,serif; --sans:"IBM Plex Sans",system-ui,sans-serif; --mono:"IBM Plex Mono",monospace;
+    --shadow:0 1px 2px rgba(27,33,29,.04), 0 14px 32px -20px rgba(27,33,29,.3);
+    --motion:420ms cubic-bezier(.16,1,.3,1);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 28px}
+  a{color:inherit}
+  .topbar{position:sticky;top:0;z-index:30;background:rgba(247,248,246,.88);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+  .topbar .row{max-width:1080px;margin:0 auto;padding:13px 28px;display:flex;align-items:center;gap:16px}
+  .brand{display:flex;align-items:center;gap:9px;font-family:var(--serif);font-weight:700;font-size:18px;letter-spacing:-.01em}
+  .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--accent)}
+  .nav{display:flex;gap:4px;margin-left:auto;align-items:center}
+  .nav a{font-size:13px;font-weight:500;color:var(--soft);text-decoration:none;padding:7px 13px;border-radius:8px;border:1px solid transparent;cursor:pointer}
+  .nav a:hover{border-color:var(--line)}
+  .nav a.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .hamb{display:none;margin-left:auto;background:transparent;border:1px solid var(--line);border-radius:7px;padding:8px 10px;cursor:pointer}
+  .hamb span{display:block;width:18px;height:2px;background:var(--ink);margin:3px 0;border-radius:2px}
+  @media (max-width:680px){.nav{display:none;position:absolute;top:54px;right:14px;left:14px;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px}.nav.open{display:flex}.hamb{display:block}}
+
+  header.mast{padding:46px 0 24px}
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+  h1{font-family:var(--serif);font-weight:700;font-size:clamp(30px,5vw,50px);line-height:1.03;letter-spacing:-.01em;margin:13px 0 0;max-width:17ch}
+  .lede{font-size:16.5px;color:var(--soft);margin:13px 0 0;max-width:60ch}
+
+  .view{padding-bottom:72px}
+  .desk{display:grid;grid-template-columns:minmax(0,360px) minmax(0,1fr);gap:28px;align-items:start}
+  @media (max-width:900px){.desk{grid-template-columns:1fr}}
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px;position:sticky;top:74px}
+  @media (max-width:900px){.panel{position:static}}
+  label{display:block;font-size:12.5px;font-weight:600;margin:13px 0 5px;color:var(--soft)}
+  label:first-child{margin-top:0}
+  select,textarea{width:100%;font-family:var(--sans);font-size:14px;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:9px;padding:10px 12px}
+  textarea{min-height:64px;resize:vertical;line-height:1.5}
+  select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:2px;border-color:transparent}
+  .rowb{display:flex;gap:9px;margin-top:16px;flex-wrap:wrap}
+  button.btn{font-family:var(--sans);font-size:14px;font-weight:600;border-radius:9px;padding:11px 16px;cursor:pointer;border:1px solid transparent;transition:background var(--motion),border-color var(--motion)}
+  button.btn:active{transform:translateY(1px)}
+  .btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{background:var(--accent-press)}
+  .btn-ghost{background:transparent;color:var(--soft);border:1px solid var(--line)}.btn-ghost:hover{border-color:var(--accent);color:var(--ink)}
+
+  .out{min-height:340px}
+  .empty{border:1px dashed var(--line);border-radius:var(--radius);padding:34px;background:var(--surface)}
+  .empty h3{font-family:var(--serif);font-weight:600;font-size:20px;margin:0 0 8px}
+  .empty p{color:var(--soft);margin:0 0 16px;max-width:54ch}
+  .note{color:var(--mute);font-size:13.5px}
+
+  .article{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 34px}
+  .article .kbtag{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+  .article h2{font-family:var(--serif);font-weight:700;font-size:27px;line-height:1.15;margin:8px 0 0;letter-spacing:-.01em}
+  .article h3{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute);margin:22px 0 6px}
+  .article p{margin:0;font-size:15.5px;color:var(--ink);line-height:1.6}
+  .article ol{margin:0;padding-left:20px}
+  .article ol li{font-size:15.5px;color:var(--ink);margin-bottom:6px;line-height:1.55}
+  .tags{display:flex;gap:7px;flex-wrap:wrap;margin-top:22px}
+  .tags span{font-family:var(--mono);font-size:11.5px;color:var(--soft);background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:4px 11px}
+  .artbar{display:flex;gap:9px;margin-top:18px;flex-wrap:wrap}
+
+  .libitem{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px 18px;margin-bottom:11px}
+  .libitem .lt{font-family:var(--serif);font-weight:600;font-size:17px}
+  .libitem .lm{font-family:var(--mono);font-size:11.5px;color:var(--mute);margin-top:3px}
+  .libitem .lb{display:flex;gap:8px;margin-top:11px;flex-wrap:wrap}
+  .ref h2{font-family:var(--serif);font-weight:600;font-size:18px;margin:24px 0 10px}
+  .ref p{color:var(--soft);max-width:64ch}
+  pre.md{font-family:var(--mono);font-size:12.5px;background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:16px;white-space:pre-wrap;line-height:1.55;margin:14px 0 0}
+
+  .enter{opacity:0;transform:translateY(8px);animation:rise var(--motion) forwards}
+  @keyframes rise{to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){.enter{animation:none;opacity:1;transform:none}button{transition:none}}
+  footer{border-top:1px solid var(--line);padding:22px 0 40px;color:var(--mute);font-size:12.5px;display:flex;gap:16px;flex-wrap:wrap}
+  footer a{color:var(--soft);text-decoration:none;border-bottom:1px solid var(--line)}
+  .src-note{font-family:var(--mono)}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="row">
+    <div class="brand"><span class="dot"></span> resolve-notes</div>
+    <button class="hamb" id="hamb" aria-label="Menu"><span></span><span></span><span></span></button>
+    <nav class="nav" id="nav">
+      <a data-view="generate" class="active">Generate</a>
+      <a data-view="library">Library</a>
+      <a data-view="reference">Reference</a>
+    </nav>
+  </div>
+</div>
+<div class="wrap">
+  <header class="mast">
+    <div class="eyebrow">resolve-notes · knowledge base</div>
+    <h1>Turn a fix into a KB article.</h1>
+    <p class="lede">The last step of the support loop. Give it the issue, what you tried and what fixed it, and it writes a clean knowledge base article — symptoms, root cause, fix steps, prevention and tags — so the next technician does not start from scratch.</p>
+  </header>
+  <main id="main"></main>
+  <footer>
+    <span class="src-note">AI-assisted · library saved in your browser</span>
+    <span>Built by Kabelo Theko</span>
+    <a href="https://github.com/Kabelo-Theko/resolve-notes" target="_blank" rel="noopener noreferrer">Source on GitHub</a>
+  </footer>
+</div>
+
+<script>
+const SAMPLE={title:"Outlook stuck in 'Disconnected' after password change",symptoms:"After a password reset, Outlook showed 'Disconnected' and kept prompting for credentials, while webmail worked normally.",root_cause:"Windows had cached the old credentials in Credential Manager, so Outlook kept presenting the expired password to Exchange.",fix_steps:["Confirm webmail works to prove the account and new password are valid.","Close Outlook fully.","Open Credential Manager and remove the stale entries under Windows Credentials for the mail/Office host.","Reopen Outlook and sign in with the new password when prompted.","Verify send and receive both work."],prevention:"After any password reset, clear cached Office credentials in the same session so the new password is the only one stored.",tags:["outlook","exchange","credentials","password-reset","m365"]};
+
+const state={view:"generate",article:null,libCache:[]};
+const $=s=>document.querySelector(s);
+const main=$("#main");
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+
+/* --- storage: Supabase if configured, else this browser's localStorage ---
+   To enable shared persistence, set these to your Supabase project URL and a
+   PUBLISHABLE key (safe in the client; protected by row-level security), and
+   create the kb_articles table (SQL in the README). Until then, the library is
+   stored locally and the app works fully offline. */
+const SUPABASE_URL=""; // e.g. https://xxxx.supabase.co
+const SUPABASE_KEY=""; // e.g. sb_publishable_...
+const sbOn=()=>!!(SUPABASE_URL&&SUPABASE_KEY);
+const sbHeaders=()=>({apikey:SUPABASE_KEY,Authorization:"Bearer "+SUPABASE_KEY,"Content-Type":"application/json"});
+const LIBKEY="rn_articles";
+const lsList=()=>{try{return JSON.parse(localStorage.getItem(LIBKEY)||"[]");}catch(e){return [];}};
+const lsAdd=a=>{const all=lsList();all.unshift(a);localStorage.setItem(LIBKEY,JSON.stringify(all.slice(0,50)));};
+const lsDel=id=>localStorage.setItem(LIBKEY,JSON.stringify(lsList().filter(x=>x.id!==id)));
+async function listArticles(){
+  if(sbOn()){try{const r=await fetch(`${SUPABASE_URL}/rest/v1/kb_articles?select=*&order=created_at.desc&limit=50`,{headers:sbHeaders()});if(r.ok)return await r.json();}catch(e){}}
+  return lsList();
+}
+async function addArticle(a){
+  if(sbOn()){try{const r=await fetch(`${SUPABASE_URL}/rest/v1/kb_articles`,{method:"POST",headers:{...sbHeaders(),Prefer:"return=minimal"},body:JSON.stringify(a)});if(r.ok)return;}catch(e){}}
+  lsAdd(a);
+}
+async function removeArticle(id){
+  if(sbOn()){try{const r=await fetch(`${SUPABASE_URL}/rest/v1/kb_articles?id=eq.${encodeURIComponent(id)}`,{method:"DELETE",headers:sbHeaders()});if(r.ok)return;}catch(e){}}
+  lsDel(id);
+}
+
+function setView(v){state.view=v;document.querySelectorAll(".nav a").forEach(a=>a.classList.toggle("active",a.dataset.view===v));$("#nav").classList.remove("open");render();}
+$("#hamb").addEventListener("click",()=>$("#nav").classList.toggle("open"));
+document.querySelectorAll(".nav a").forEach(a=>a.addEventListener("click",()=>setView(a.dataset.view)));
+
+function markdown(a){
+  return `# ${a.title}\n\n**Tags:** ${(a.tags||[]).join(", ")}\n\n## Symptoms\n${a.symptoms}\n\n## Root cause\n${a.root_cause}\n\n## Fix\n${(a.fix_steps||[]).map((s,i)=>`${i+1}. ${s}`).join("\n")}\n\n## Prevention\n${a.prevention}\n`;
+}
+function articleHTML(a){
+  return `<div class="article enter">
+    <div class="kbtag">Knowledge base article</div>
+    <h2>${esc(a.title)}</h2>
+    <h3>Symptoms</h3><p>${esc(a.symptoms)}</p>
+    <h3>Root cause</h3><p>${esc(a.root_cause)}</p>
+    <h3>Fix</h3><ol>${(a.fix_steps||[]).map(s=>`<li>${esc(s)}</li>`).join("")}</ol>
+    <h3>Prevention</h3><p>${esc(a.prevention)}</p>
+    <div class="tags">${(a.tags||[]).map(t=>`<span>${esc(t)}</span>`).join("")}</div>
+    <div class="artbar">
+      <button class="btn btn-primary" id="copymd">Copy Markdown</button>
+      <button class="btn btn-ghost" id="dlmd">Download .md</button>
+      <button class="btn btn-ghost" id="savelib">Save to library</button>
+    </div>
+  </div>`;
+}
+function wireArticle(a){
+  const cp=$("#copymd"); if(cp)cp.addEventListener("click",async()=>{await navigator.clipboard.writeText(markdown(a));cp.textContent="Copied";setTimeout(()=>cp.textContent="Copy Markdown",1400);});
+  const dl=$("#dlmd"); if(dl)dl.addEventListener("click",()=>{const blob=new Blob([markdown(a)],{type:"text/markdown"});const el=document.createElement("a");el.href=URL.createObjectURL(blob);el.download=(a.title||"kb-article").toLowerCase().replace(/[^a-z0-9]+/g,"-").slice(0,50)+".md";el.click();URL.revokeObjectURL(el.href);});
+  const sv=$("#savelib"); if(sv)sv.addEventListener("click",async()=>{await addArticle({...a,id:"KB-"+Date.now(),created_at:new Date().toISOString()});sv.textContent="Saved to library";setTimeout(()=>sv.textContent="Save to library",1400);});
+}
+
+function generateView(){
+  main.innerHTML=`<div class="view enter"><div class="desk">
+    <section class="panel">
+      <label for="cat">Category</label>
+      <select id="cat"><option>Account &amp; Access</option><option>Email</option><option>Network</option><option>Point of Sale</option><option>Printer</option><option>Hardware</option><option>Software</option><option>Security</option><option>General</option></select>
+      <label for="issue">Issue reported</label><textarea id="issue" placeholder="What the user reported"></textarea>
+      <label for="tried">What was tried</label><textarea id="tried" placeholder="Steps you already attempted"></textarea>
+      <label for="fixed">What fixed it</label><textarea id="fixed" placeholder="The change that actually resolved it"></textarea>
+      <label for="aimodel">AI model</label>
+      <select id="aimodel"><option value="flash">DeepSeek v4 Flash (fast)</option><option value="pro">DeepSeek v4 Pro (best quality)</option><option value="minimax">MiniMax M3</option></select>
+      <div class="rowb"><button class="btn btn-primary" id="gen">Generate article</button><button class="btn btn-ghost" id="ex">See an example</button></div>
+    </section>
+    <section class="out" id="out">${state.article?articleHTML(state.article):emptyGen()}</section>
+  </div></div>`;
+  if(state.article) wireArticle(state.article);
+  $("#ex").addEventListener("click",()=>{state.article=SAMPLE;$("#out").innerHTML=articleHTML(SAMPLE);wireArticle(SAMPLE);});
+  $("#gen").addEventListener("click",gen);
+}
+function emptyGen(){return `<div class="empty enter"><h3>The article appears here.</h3><p>Fill in the resolution on the left and generate. You will get a structured KB article you can copy as Markdown, download, or save to your library.</p><p class="note">Tip: hit "See an example" to view the format before you write anything.</p></div>`;}
+async function gen(){
+  const out=$("#out");
+  const body={category:$("#cat").value,issue:$("#issue").value,tried:$("#tried").value,fixed:$("#fixed").value,model:($("#aimodel")?.value||"flash")};
+  if(!body.issue.trim()&&!body.fixed.trim()){out.innerHTML=`<div class="empty"><h3>Add a little more.</h3><p>Tell me at least the issue and what fixed it, then generate.</p></div>`;return;}
+  out.innerHTML=`<div class="empty"><h3>Writing the article…</h3><p class="note">Drafting symptoms, root cause, fix steps, prevention and tags.</p></div>`;
+  try{
+    const r=await fetch("/api/ai",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+    if(!r.ok) throw new Error(String(r.status));
+    const a=await r.json(); state.article=a; out.innerHTML=articleHTML(a); wireArticle(a);
+  }catch(e){
+    out.innerHTML=`<div class="empty"><h3>AI backend not enabled yet.</h3><p>This tool generates the article with an LLM through a serverless function. Set <code>NVIDIA_API_KEY</code> in the Vercel project to switch it on.</p><p class="note">In the meantime, hit "See an example" to view the output format.</p></div>`;
+  }
+}
+
+async function libraryView(){
+  main.innerHTML=`<div class="view"><div class="empty"><h3>Loading library…</h3></div></div>`;
+  const items=await listArticles(); state.libCache=items;
+  if(!items.length){main.innerHTML=`<div class="view enter"><div class="empty"><h3>Your library is empty.</h3><p>Generate an article and click "Save to library". Articles persist to Supabase when it is configured, otherwise to this browser.</p></div></div>`;return;}
+  const find=id=>state.libCache.find(x=>x.id===id);
+  main.innerHTML=`<div class="view enter">`+items.map(a=>`<div class="libitem" data-id="${a.id}">
+      <div class="lt">${esc(a.title)}</div>
+      <div class="lm">${(a.tags||[]).join(" · ")} · saved ${new Date(a.created_at||a.ts||Date.now()).toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"})}</div>
+      <div class="lb"><button class="btn btn-ghost open" data-id="${a.id}">Open</button><button class="btn btn-ghost copy" data-id="${a.id}">Copy Markdown</button><button class="btn btn-ghost del" data-id="${a.id}">Delete</button></div>
+    </div>`).join("")+`</div>`;
+  main.querySelectorAll(".open").forEach(b=>b.addEventListener("click",()=>{state.article=find(b.dataset.id);setView("generate");}));
+  main.querySelectorAll(".copy").forEach(b=>b.addEventListener("click",async()=>{await navigator.clipboard.writeText(markdown(find(b.dataset.id)));b.textContent="Copied";setTimeout(()=>b.textContent="Copy Markdown",1400);}));
+  main.querySelectorAll(".del").forEach(b=>b.addEventListener("click",async()=>{await removeArticle(b.dataset.id);render();}));
+}
+
+function referenceView(){
+  main.innerHTML=`<div class="view ref enter">
+    <h2>What it produces</h2>
+    <p>Every article follows the same shape so the knowledge base stays consistent: a specific <b>title</b>, the <b>symptoms</b> a user would recognise, the real <b>root cause</b>, numbered <b>fix steps</b>, a one-line <b>prevention</b> note, and <b>tags</b> for search.</p>
+    <h2>Example output (Markdown)</h2>
+    <pre class="md">${esc(markdown(SAMPLE))}</pre>
+    <h2>How it works</h2>
+    <p>The structure is enforced by the app; the wording is generated by an LLM through a small serverless function, with the API key kept server-side. The library is stored in your browser for this demo and can be wired to a shared database (Supabase) for a real team knowledge base.</p>
+  </div>`;
+}
+
+function render(){if(state.view==="generate")generateView();else if(state.view==="library")libraryView();else referenceView();}
+render();
+</script>
+</body>
+</html>
