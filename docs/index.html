@@ -80,6 +80,13 @@
 
   .enter{opacity:0;transform:translateY(8px);animation:rise var(--motion) forwards}
   @keyframes rise{to{opacity:1;transform:none}}
+  @media (max-width:560px){
+    .topbar .row{padding:11px 16px}
+    h1{font-size:30px}
+    .article{padding:22px 20px}
+    .article h2{font-size:23px}
+    pre.md{font-size:11.5px}
+  }
   @media (prefers-reduced-motion:reduce){.enter{animation:none;opacity:1;transform:none}button{transition:none}}
   footer{border-top:1px solid var(--line);padding:22px 0 40px;color:var(--mute);font-size:12.5px;display:flex;gap:16px;flex-wrap:wrap}
   footer a{color:var(--soft);text-decoration:none;border-bottom:1px solid var(--line)}
