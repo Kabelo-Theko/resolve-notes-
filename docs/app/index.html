@@ -190,6 +190,14 @@ footer a{color:var(--soft);text-decoration:none;border-bottom:1px solid var(--li
 footer a:hover{color:var(--ink)}
 footer a:focus-visible{outline:none;box-shadow:var(--focus)}
 .src-note{font-family:var(--mono)}
+
+/* small-screen nav audit fix: visible scroll affordance on the view tabs */
+@media (max-width:430px){
+  .nav{scrollbar-width:thin}
+  .nav::-webkit-scrollbar{height:4px}
+  .nav::-webkit-scrollbar-thumb{background:var(--soft,#8a8580);border-radius:2px}
+  .nav a{font-size:11px;padding:8px 4px}
+}
 </style>
 </head>
 <body>
@@ -217,7 +225,7 @@ footer a:focus-visible{outline:none;box-shadow:var(--focus)}
   <footer>
     <span class="src-note">Deterministic structure · AI-assisted wording · stays in your browser</span>
     <span>Built by Kabelo Theko</span>
-    <a href="../">About the shop</a>
+    <a href="landing.html">About the shop</a>
     <a href="https://github.com/Kabelo-Theko/resolve-notes" target="_blank" rel="noopener noreferrer">Source on GitHub</a>
   </footer>
 </div>
