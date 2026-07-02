@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="paper">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>resolve-notes — fix it once, write it down</title>
+<meta name="description" content="Turn a resolved ticket into a clean knowledge base article: symptoms, root cause, numbered fix steps, prevention and tags — with a reasoning receipt and a review gate before the team relies on it." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Schibsted+Grotesk:ital,wght@0,400;0,500;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+/* ════════════════════════════════════════════════════════════════
+   RESOLVE-NOTES v2 · "THE PRINT SHOP" — fix it once, write it down,
+   print it for the team. Warm paper, raspberry ink, Anton caps.
+   Every AI draft is PRINTED MATTER: receipted, reviewed, approved.
+   Themes: paper (default) · ink-room (dark)
+   ════════════════════════════════════════════════════════════════ */
+:root{
+  --display:"Anton",Impact,sans-serif;
+  --serif:"Schibsted Grotesk",system-ui,sans-serif; /* legacy alias: headings */
+  --sans:"Schibsted Grotesk",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+  --radius:12px;--radius-lg:18px;--radius-pill:999px;
+  --motion:300ms cubic-bezier(.2,0,0,1);
+  --spring:cubic-bezier(.34,1.26,.5,1);
+  --emph:cubic-bezier(.05,.7,.1,1);
+  --page-max:1080px;
+}
+:root,html[data-theme="paper"]{
+  color-scheme:light;
+  --bg:#FAF7F1;              /* warm print paper        */
+  --surface:#FFFEFB;
+  --paper:#F1EDE4;           /* legacy alias: wells     */
+  --line:rgba(34,29,38,.13);
+  --line-soft:rgba(34,29,38,.08);
+  --ink:#221D26;             /* 15.4:1                  */
+  --soft:#5A5361;            /* 7.3:1 on card           */
+  --mute:#736B7C;
+  --accent:#D6104F;          /* raspberry ink           */
+  --accent-press:#B50D42;
+  --accent-text:#C00D47;     /* 5.8:1 on paper          */
+  --accent-soft:rgba(214,16,79,.08);
+  --on-accent:#FFF5F8;       /* 4.9:1                   */
+  --review:#9A5B1E;   --review-bg:rgba(176,108,32,.12);
+  --ok:#1E6E48;       --ok-bg:rgba(30,110,72,.10);
+  --shadow:0 1px 2px rgba(34,29,38,.05),0 4px 14px rgba(34,29,38,.06);
+  --shadow-md:0 14px 34px -12px rgba(34,29,38,.18);
+  --focus:0 0 0 2px var(--bg),0 0 0 4px var(--accent);
+  --accent-press-legacy:var(--accent-press);
+}
+html[data-theme="ink-room"]{
+  color-scheme:dark;
+  --bg:#16121A;
+  --surface:#221C28;
+  --paper:#0F0C13;
+  --line:rgba(240,234,242,.13);
+  --line-soft:rgba(240,234,242,.08);
+  --ink:#F0EAF2;             /* 15.6:1                  */
+  --soft:#BBB2C4;            /* 8.1:1 on card           */
+  --mute:#948BA0;
+  --accent:#FF7BA9;          /* pink plate              */
+  --accent-press:#FF98BC;
+  --accent-text:#FF7BA9;     /* 7.6:1                   */
+  --accent-soft:rgba(255,123,169,.10);
+  --on-accent:#3A0A1E;       /* 7.0:1                   */
+  --review:#E9B96A;   --review-bg:rgba(233,185,106,.10);
+  --ok:#83CFA0;       --ok-bg:rgba(131,207,160,.10);
+  --shadow:0 1px 3px rgba(0,0,0,.4);
+  --shadow-md:0 14px 34px rgba(0,0,0,.5);
+  --focus:0 0 0 2px var(--bg),0 0 0 4px var(--accent);
+}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.6;-webkit-font-smoothing:antialiased;transition:background var(--motion)}
+.wrap{max-width:var(--page-max);margin:0 auto;padding:0 clamp(16px,4vw,32px)}
+a{color:inherit}
+
+/* ── nav: marker-highlight tabs ── */
+.topbar{position:sticky;top:0;z-index:30;background:color-mix(in srgb,var(--bg) 90%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line-soft)}
+.topbar .row{max-width:var(--page-max);margin:0 auto;padding:14px clamp(16px,4vw,32px);display:flex;align-items:center;gap:16px}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:400;font-size:1.15rem;letter-spacing:.04em;text-transform:uppercase}
+.brand .dot{width:10px;height:10px;border-radius:2px;background:var(--accent);transform:rotate(8deg)}
+.nav{display:flex;gap:8px;margin-left:auto;align-items:center;overflow-x:auto;scrollbar-width:none}
+.nav::-webkit-scrollbar{display:none}
+.nav a{font-family:var(--mono);font-size:12px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--soft);text-decoration:none;padding:8px 4px;cursor:pointer;position:relative;white-space:nowrap;transition:color var(--motion)}
+.nav a:hover{color:var(--ink)}
+.nav a.active{color:var(--ink)}
+.nav a.active::after{content:"";position:absolute;left:-2px;right:-2px;bottom:4px;height:8px;background:var(--accent-soft);border-bottom:3px solid var(--accent);border-radius:2px;z-index:-1}
+.nav a:focus-visible{outline:none;box-shadow:var(--focus);border-radius:4px}
+.themebtn{appearance:none;background:transparent;border:none;color:var(--soft);width:38px;height:38px;border-radius:var(--radius-pill);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex:none;transition:color var(--motion),background var(--motion)}
+.themebtn:hover{color:var(--ink);background:var(--accent-soft)}
+.themebtn:focus-visible{outline:none;box-shadow:var(--focus)}
+.themebtn svg{width:17px;height:17px;stroke:currentColor;stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.hamb{display:none}
+
+/* ── masthead ── */
+header.mast{padding:52px 0 28px}
+.eyebrow{font-family:var(--mono);font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent-text)}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(2.6rem,1.6rem + 4.6vw,4.9rem);line-height:1;letter-spacing:.005em;text-transform:uppercase;margin:16px 0 0;max-width:16ch;color:var(--ink)}
+h1 .mark{color:var(--accent-text)}
+.lede{font-size:1.05rem;color:var(--soft);margin:18px 0 0;max-width:58ch;text-wrap:pretty}
+
+.view{padding-bottom:72px}
+.desk{display:grid;grid-template-columns:minmax(0,360px) minmax(0,1fr);gap:24px;align-items:start}
+@media (max-width:900px){.desk{grid-template-columns:1fr}}
+.panel{background:var(--surface);border:1px solid var(--line-soft);border-radius:var(--radius-lg);box-shadow:var(--shadow);padding:24px;position:sticky;top:78px}
+@media (max-width:900px){.panel{position:static}}
+label{display:block;font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;margin:16px 0 8px;color:var(--mute)}
+label:first-child{margin-top:0}
+select,textarea{width:100%;font-family:var(--sans);font-size:14px;color:var(--ink);background:var(--paper);border:1px solid transparent;border-radius:var(--radius);padding:12px 14px;transition:border-color var(--motion),background var(--motion)}
+textarea{min-height:64px;resize:vertical;line-height:1.55}
+select:hover,textarea:hover{border-color:var(--line)}
+select:focus,textarea:focus{outline:none;background:var(--surface);border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+select{appearance:none;background-image:linear-gradient(45deg,transparent 49%,var(--mute) 50%),linear-gradient(135deg,var(--mute) 50%,transparent 51%);background-position:calc(100% - 16px) 55%,calc(100% - 12px) 55%;background-size:5px 5px;background-repeat:no-repeat;padding-right:38px;cursor:pointer}
+.rowb{display:flex;gap:8px;margin-top:20px;flex-wrap:wrap}
+button.btn{font-family:var(--sans);font-size:14px;font-weight:700;border-radius:var(--radius-pill);padding:12px 20px;cursor:pointer;border:1px solid transparent;transition:background var(--motion),border-color var(--motion),color var(--motion),transform 130ms var(--spring)}
+button.btn:hover{transform:translateY(-1px)}
+button.btn:active{transform:scale(.97)}
+button.btn:focus-visible{outline:none;box-shadow:var(--focus)}
+.btn-primary{background:var(--accent);color:var(--on-accent)}
+.btn-primary:hover{background:var(--accent-press)}
+.btn-ghost{background:transparent;color:var(--soft);border:1px solid var(--line)}
+.btn-ghost:hover{border-color:var(--accent);color:var(--ink)}
+
+.out{min-height:340px}
+.empty{border:1.5px dashed var(--line);border-radius:var(--radius-lg);padding:36px;background:transparent}
+.empty h3{font-family:var(--sans);font-weight:700;font-size:1.35rem;letter-spacing:-.01em;margin:0 0 12px}
+.empty p{color:var(--soft);margin:0 0 12px;max-width:54ch}
+.empty code{font-family:var(--mono);font-size:.85em;background:var(--paper);padding:2px 8px;border-radius:6px}
+.note{color:var(--mute);font-size:13.5px}
+
+/* ── the printed article ── */
+.article{background:var(--surface);border:1px solid var(--line-soft);border-radius:var(--radius-lg);box-shadow:var(--shadow-md);padding:36px clamp(20px,4vw,40px);position:relative;overflow:hidden}
+.article::before{content:"";position:absolute;top:0;left:0;right:0;height:6px;background:repeating-linear-gradient(90deg,var(--accent) 0 14px,transparent 14px 22px)}
+.article .kbtag{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent-text)}
+.article h2{font-family:var(--sans);font-weight:700;font-size:clamp(1.5rem,1.2rem + 1.4vw,2rem);line-height:1.12;margin:12px 0 0;letter-spacing:-.02em}
+.article h3{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute);margin:28px 0 8px;display:flex;align-items:center;gap:10px}
+.article h3::after{content:"";flex:1;height:1px;background:var(--line-soft)}
+.article p{margin:0;font-size:15.5px;color:var(--ink);line-height:1.65;max-width:66ch}
+.article ol{margin:0;padding-left:0;counter-reset:step;list-style:none}
+.article ol li{font-size:15.5px;color:var(--ink);margin-bottom:12px;line-height:1.6;counter-increment:step;display:flex;gap:12px;align-items:baseline}
+.article ol li::before{content:counter(step);font-family:var(--mono);font-size:12px;color:var(--accent-text);background:var(--accent-soft);border-radius:var(--radius-pill);min-width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;flex:none;transform:translateY(3px)}
+.tags{display:flex;gap:8px;flex-wrap:wrap;margin-top:24px}
+.tags span{font-family:var(--mono);font-size:11.5px;color:var(--soft);background:var(--paper);border-radius:var(--radius-pill);padding:4px 16px}
+.artbar{display:flex;gap:8px;margin-top:20px;flex-wrap:wrap}
+
+.receipt{font-family:var(--mono);font-size:11px;color:var(--soft);background:var(--paper);border-radius:var(--radius);padding:12px 16px;margin:16px 0 4px;line-height:1.6}
+.receipt b{color:var(--ink);font-weight:500}
+.badge{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:4px 12px;border-radius:4px;margin-left:12px;vertical-align:middle;white-space:nowrap;transform:rotate(-1deg)}
+.badge.review{background:var(--review-bg);color:var(--review);box-shadow:inset 0 0 0 1.5px var(--review)}
+.badge.ok{background:var(--ok-bg);color:var(--ok);box-shadow:inset 0 0 0 1.5px var(--ok)}
+
+.libitem{background:var(--surface);border:1px solid var(--line-soft);border-radius:var(--radius-lg);box-shadow:var(--shadow);padding:20px;margin-bottom:12px;transition:transform 130ms var(--spring),border-color var(--motion)}
+.libitem:hover{transform:translateY(-2px);border-color:var(--line)}
+.libitem .lt{font-family:var(--sans);font-weight:700;font-size:1.1rem;letter-spacing:-.01em}
+.libitem .lm{font-family:var(--mono);font-size:11.5px;color:var(--mute);margin-top:8px}
+.libitem .lb{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.ref h2{font-family:var(--sans);font-weight:700;font-size:1.35rem;letter-spacing:-.015em;margin:32px 0 12px}
+.ref h2:first-child{margin-top:0}
+.ref p{color:var(--soft);max-width:64ch;line-height:1.7}
+.ref b{color:var(--ink)}
+.ref code{font-family:var(--mono);font-size:.85em;background:var(--paper);padding:2px 8px;border-radius:6px;color:var(--ink)}
+pre.md{font-family:var(--mono);font-size:12.5px;background:var(--paper);border-radius:var(--radius);padding:20px;white-space:pre-wrap;line-height:1.6;margin:16px 0 0;color:var(--ink)}
+
+.libtools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.search{flex:1;min-width:200px;font-family:var(--sans);font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-pill);padding:12px 20px}
+.search:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px}
+.chip{font-family:var(--mono);font-size:11.5px;color:var(--soft);background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-pill);padding:8px 16px;cursor:pointer;user-select:none;transition:all var(--motion)}
+.chip:hover{border-color:var(--accent);color:var(--ink)}
+.chip.on{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.related{margin-top:28px;border-top:1px dashed var(--line);padding-top:16px}
+.related h3{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute);margin:0 0 12px}
+.related a{display:inline-block;font-size:13.5px;font-weight:500;color:var(--accent-text);background:var(--accent-soft);border-radius:var(--radius-pill);padding:8px 16px;margin:0 8px 8px 0;cursor:pointer;text-decoration:none;transition:transform 130ms var(--spring)}
+.related a:hover{transform:translateY(-1px)}
+
+.enter{opacity:0;transform:translateY(10px);animation:rise 420ms var(--emph) forwards}
+@keyframes rise{to{opacity:1;transform:none}}
+@media (max-width:560px){
+  .topbar .row{padding:12px 16px}
+  .article{padding:28px 20px}
+  pre.md{font-size:11.5px}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;transition-duration:.01ms !important}
+  .enter{animation:none;opacity:1;transform:none}
+}
+footer{border-top:1px solid var(--line-soft);padding:24px 0 44px;color:var(--mute);font-size:12.5px;display:flex;gap:16px;flex-wrap:wrap}
+footer a{color:var(--soft);text-decoration:none;border-bottom:1px solid var(--line)}
+footer a:hover{color:var(--ink)}
+footer a:focus-visible{outline:none;box-shadow:var(--focus)}
+.src-note{font-family:var(--mono)}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="row">
+    <div class="brand"><span class="dot"></span> resolve-notes</div>
+    <button class="hamb" id="hamb" aria-label="Menu" hidden><span></span><span></span><span></span></button>
+    <nav class="nav" id="nav">
+      <a data-view="generate" class="active">Generate</a>
+      <a data-view="library">Library</a>
+      <a data-view="reference">Reference</a>
+    </nav>
+    <button class="themebtn" id="themebtn" aria-pressed="false" aria-label="Switch to ink-room theme">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5z"/></svg>
+    </button>
+  </div>
+</div>
+<div class="wrap">
+  <header class="mast">
+    <div class="eyebrow">resolve-notes · the team's print shop</div>
+    <h1>Fix it once. <span class="mark">Write it down.</span></h1>
+    <p class="lede">The last step of the support loop. Give it the issue, what you tried and what fixed it, and it prints a clean knowledge-base article — symptoms, root cause, numbered fix steps, prevention and tags — so the next technician starts from the answer, not from scratch.</p>
+  </header>
+  <main id="main"></main>
+  <footer>
+    <span class="src-note">Deterministic structure · AI-assisted wording · stays in your browser</span>
+    <span>Built by Kabelo Theko</span>
+    <a href="../">About the shop</a>
+    <a href="https://github.com/Kabelo-Theko/resolve-notes" target="_blank" rel="noopener noreferrer">Source on GitHub</a>
+  </footer>
+</div>
+
+<script>
+(function(){
+  try{var s=localStorage.getItem("rn-theme");if(s)document.documentElement.dataset.theme=s;}catch(e){}
+  var b=document.getElementById("themebtn");
+  function apply(t){
+    document.documentElement.dataset.theme=t;
+    var dark=t==="ink-room";
+    b.setAttribute("aria-pressed",String(dark));
+    b.setAttribute("aria-label",dark?"Switch to paper (light) theme":"Switch to ink-room theme");
+    b.innerHTML=dark
+      ?'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2" stroke="currentColor" stroke-width="1.8" fill="none"/><path stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M12 2.5v2.7M12 18.8v2.7M2.5 12h2.7M18.8 12h2.7M5 5l1.9 1.9M17.1 17.1 19 19M19 5l-1.9 1.9M6.9 17.1 5 19"/></svg>'
+      :'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5z" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    try{localStorage.setItem("rn-theme",t);}catch(e){}
+  }
+  b.addEventListener("click",function(){apply(document.documentElement.dataset.theme==="ink-room"?"paper":"ink-room");});
+  if(document.documentElement.dataset.theme==="ink-room")apply("ink-room");
+})();
+</script>
+<script>
+const SAMPLE={title:"Outlook stuck in 'Disconnected' after password change",symptoms:"After a password reset, Outlook showed 'Disconnected' and kept prompting for credentials, while webmail worked normally.",root_cause:"Windows had cached the old credentials in Credential Manager, so Outlook kept presenting the expired password to Exchange.",fix_steps:["Confirm webmail works to prove the account and new password are valid.","Close Outlook fully.","Open Credential Manager and remove the stale entries under Windows Credentials for the mail/Office host.","Reopen Outlook and sign in with the new password when prompted.","Verify send and receive both work."],prevention:"After any password reset, clear cached Office credentials in the same session so the new password is the only one stored.",tags:["outlook","exchange","credentials","password-reset","m365"],_meta:{model:"DeepSeek v4 Flash",task:"illustrative example",ts:"2026-06-18T09:24:00.000Z"},_status:"reviewed",_category:"Email"};
+
+const state={view:"generate",article:null,libCache:[],query:"",filter:null};
+const $=s=>document.querySelector(s);
+const main=$("#main");
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+
+/* --- storage: Supabase if configured, else this browser's localStorage ---
+   To enable shared persistence, set these to your Supabase project URL and a
+   PUBLISHABLE key (safe in the client; protected by row-level security), and
+   create the kb_articles table (SQL in the README). Until then, the library is
+   stored locally and the app works fully offline. */
+const SUPABASE_URL=""; // e.g. https://xxxx.supabase.co
+const SUPABASE_KEY=""; // e.g. sb_publishable_...
+const sbOn=()=>!!(SUPABASE_URL&&SUPABASE_KEY);
+const sbHeaders=()=>({apikey:SUPABASE_KEY,Authorization:"Bearer "+SUPABASE_KEY,"Content-Type":"application/json"});
+const LIBKEY="rn_articles";
+const lsList=()=>{try{return JSON.parse(localStorage.getItem(LIBKEY)||"[]");}catch(e){return [];}};
+const lsAdd=a=>{const all=lsList();all.unshift(a);localStorage.setItem(LIBKEY,JSON.stringify(all.slice(0,50)));};
+const lsDel=id=>localStorage.setItem(LIBKEY,JSON.stringify(lsList().filter(x=>x.id!==id)));
+const lsUpdate=(id,patch)=>localStorage.setItem(LIBKEY,JSON.stringify(lsList().map(x=>x.id===id?{...x,...patch}:x)));
+async function listArticles(){
+  if(sbOn()){try{const r=await fetch(`${SUPABASE_URL}/rest/v1/kb_articles?select=*&order=created_at.desc&limit=50`,{headers:sbHeaders()});if(r.ok)return await r.json();}catch(e){}}
+  return lsList();
+}
+/* Underscore-prefixed fields (_status, _meta, _category) are the client-side
+   governance and receipt layer; they stay in the browser and are not written to
+   Supabase, whose table holds the core article columns only. */
+const sbClean=o=>Object.fromEntries(Object.entries(o).filter(([k])=>!k.startsWith("_")));
+async function addArticle(a){
+  if(sbOn()){try{const r=await fetch(`${SUPABASE_URL}/rest/v1/kb_articles`,{method:"POST",headers:{...sbHeaders(),Prefer:"return=minimal"},body:JSON.stringify(sbClean(a))});if(r.ok)return;}catch(e){}}
+  lsAdd(a);
+}
+async function removeArticle(id){
+  if(sbOn()){try{const r=await fetch(`${SUPABASE_URL}/rest/v1/kb_articles?id=eq.${encodeURIComponent(id)}`,{method:"DELETE",headers:sbHeaders()});if(r.ok)return;}catch(e){}}
+  lsDel(id);
+}
+async function updateArticle(id,patch){
+  // Review status is part of the client governance layer, so it is kept locally.
+  lsUpdate(id,patch);
+}
+
+function setView(v){state.view=v;document.querySelectorAll(".nav a").forEach(a=>a.classList.toggle("active",a.dataset.view===v));$("#nav").classList.remove("open");render();}
+$("#hamb").addEventListener("click",()=>$("#nav").classList.toggle("open"));
+document.querySelectorAll(".nav a").forEach(a=>a.addEventListener("click",()=>setView(a.dataset.view)));
+
+function markdown(a){
+  return `# ${a.title}\n\n**Tags:** ${(a.tags||[]).join(", ")}\n\n## Symptoms\n${a.symptoms}\n\n## Root cause\n${a.root_cause}\n\n## Fix\n${(a.fix_steps||[]).map((s,i)=>`${i+1}. ${s}`).join("\n")}\n\n## Prevention\n${a.prevention}\n`;
+}
+function modelLabel(){const s=$("#aimodel");return s?s.options[s.selectedIndex].text.replace(/\s*\(.*\)\s*/,"").trim():"AI";}
+function badgeHTML(a){
+  if(!a._status) return "";
+  return a._status==="reviewed"?`<span class="badge ok">Reviewed</span>`:`<span class="badge review">AI-drafted · needs review</span>`;
+}
+function receiptHTML(a){
+  if(!a._meta) return "";
+  const m=a._meta;
+  const when=m.ts?new Date(m.ts).toLocaleString("en-GB",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"}):"";
+  return `<div class="receipt"><b>Reasoning receipt</b> &nbsp; model: ${esc(m.model||"AI")} &nbsp;·&nbsp; source: ${esc(m.task||"")}${when?` &nbsp;·&nbsp; ${esc(when)}`:""}<br>Structure is enforced by the app; the wording is drafted by the model. A human reviews it before the team relies on it.</div>`;
+}
+function relatedHTML(a){
+  const lib=(state.libCache&&state.libCache.length)?state.libCache:lsList();
+  const at=new Set((a.tags||[]).map(t=>String(t).toLowerCase()));
+  if(!at.size) return "";
+  const rel=lib.filter(x=>x.id&&x.id!==a.id&&(x.tags||[]).some(t=>at.has(String(t).toLowerCase()))).slice(0,4);
+  if(!rel.length) return "";
+  return `<div class="related"><h3>Related notes in your library</h3>${rel.map(x=>`<a data-rel="${esc(x.id)}">${esc(x.title)}</a>`).join("")}</div>`;
+}
+function articleHTML(a){
+  const canApprove=a.id&&a._status==="needs_review";
+  return `<div class="article enter">
+    <div class="kbtag">Knowledge base article ${badgeHTML(a)}</div>
+    <h2>${esc(a.title)}</h2>
+    ${receiptHTML(a)}
+    <h3>Symptoms</h3><p>${esc(a.symptoms)}</p>
+    <h3>Root cause</h3><p>${esc(a.root_cause)}</p>
+    <h3>Fix</h3><ol>${(a.fix_steps||[]).map(s=>`<li>${esc(s)}</li>`).join("")}</ol>
+    <h3>Prevention</h3><p>${esc(a.prevention)}</p>
+    <div class="tags">${(a.tags||[]).map(t=>`<span>${esc(t)}</span>`).join("")}</div>
+    ${relatedHTML(a)}
+    <div class="artbar">
+      <button class="btn btn-primary" id="copymd">Copy Markdown</button>
+      <button class="btn btn-ghost" id="dlmd">Download .md</button>
+      ${canApprove?`<button class="btn btn-ghost" id="approve">Approve</button>`:``}
+      <button class="btn btn-ghost" id="savelib">Save to library</button>
+    </div>
+  </div>`;
+}
+function wireArticle(a){
+  const cp=$("#copymd"); if(cp)cp.addEventListener("click",async()=>{await navigator.clipboard.writeText(markdown(a));cp.textContent="Copied";setTimeout(()=>cp.textContent="Copy Markdown",1400);});
+  const dl=$("#dlmd"); if(dl)dl.addEventListener("click",()=>{const blob=new Blob([markdown(a)],{type:"text/markdown"});const el=document.createElement("a");el.href=URL.createObjectURL(blob);el.download=(a.title||"kb-article").toLowerCase().replace(/[^a-z0-9]+/g,"-").slice(0,50)+".md";el.click();URL.revokeObjectURL(el.href);});
+  const ap=$("#approve"); if(ap)ap.addEventListener("click",async()=>{await updateArticle(a.id,{_status:"reviewed",reviewed_at:new Date().toISOString()});a._status="reviewed";const out=$("#out");if(out){out.innerHTML=articleHTML(a);wireArticle(a);}});
+  const sv=$("#savelib"); if(sv)sv.addEventListener("click",async()=>{
+    const existing=await listArticles();
+    const aTags=new Set((a.tags||[]).map(t=>String(t).toLowerCase()));
+    const dup=existing.find(x=>{const xt=(x.tags||[]).map(t=>String(t).toLowerCase());const overlap=xt.filter(t=>aTags.has(t)).length;return overlap>=2||(x.title&&a.title&&x.title.toLowerCase()===a.title.toLowerCase());});
+    if(dup && !confirm(`A similar article already exists:\n\n"${dup.title}"\n\nSave this as a new article anyway?`)) return;
+    const rec={...a,id:a.id||("KB-"+Date.now()),created_at:a.created_at||new Date().toISOString(),_status:a._status||"needs_review"};
+    await addArticle(rec); a.id=rec.id; a.created_at=rec.created_at;
+    sv.textContent="Saved to library";setTimeout(()=>sv.textContent="Save to library",1400);
+  });
+  document.querySelectorAll(".related a[data-rel]").forEach(el=>el.addEventListener("click",()=>{const lib=(state.libCache&&state.libCache.length)?state.libCache:lsList();const found=lib.find(x=>x.id===el.dataset.rel);if(found){state.article=found;setView("generate");}}));
+}
+
+function generateView(){
+  main.innerHTML=`<div class="view enter"><div class="desk">
+    <section class="panel">
+      <label for="cat">Category</label>
+      <select id="cat"><option>Account &amp; Access</option><option>Email</option><option>Network</option><option>Point of Sale</option><option>Printer</option><option>Hardware</option><option>Software</option><option>Security</option><option>General</option></select>
+      <label for="issue">Issue reported</label><textarea id="issue" placeholder="What the user reported"></textarea>
+      <label for="tried">What was tried</label><textarea id="tried" placeholder="Steps you already attempted"></textarea>
+      <label for="fixed">What fixed it</label><textarea id="fixed" placeholder="The change that actually resolved it"></textarea>
+      <label for="aimodel">AI model</label>
+      <select id="aimodel"><option value="flash">DeepSeek v4 Flash (fast)</option><option value="pro">DeepSeek v4 Pro (best quality)</option><option value="minimax">MiniMax M3</option></select>
+      <div class="rowb"><button class="btn btn-primary" id="gen">Generate article</button><button class="btn btn-ghost" id="ex">See an example</button></div>
+      <div style="border-top:1px solid var(--line);margin:18px 0 0;padding-top:15px">
+        <label for="thread">Or paste a ticket thread</label>
+        <textarea id="thread" placeholder="Paste an email or chat thread; the AI derives the issue, cause and fix"></textarea>
+        <div class="rowb"><button class="btn btn-ghost" id="genthread">Generate from thread</button></div>
+      </div>
+    </section>
+    <section class="out" id="out">${state.article?articleHTML(state.article):emptyGen()}</section>
+  </div></div>`;
+  if(state.article) wireArticle(state.article);
+  $("#ex").addEventListener("click",()=>{state.article=SAMPLE;$("#out").innerHTML=articleHTML(SAMPLE);wireArticle(SAMPLE);});
+  $("#gen").addEventListener("click",gen);
+  const gt=$("#genthread"); if(gt)gt.addEventListener("click",genThread);
+}
+async function genThread(){
+  const out=$("#out"); const thread=$("#thread").value.trim();
+  if(!thread){out.innerHTML=`<div class="empty"><h3>Paste a thread first.</h3><p>Drop an email or chat thread in the box, then generate.</p></div>`;return;}
+  out.innerHTML=`<div class="empty"><h3>Reading the thread…</h3><p class="note">Deriving the issue, root cause and fix.</p></div>`;
+  try{
+    const r=await fetch("/api/ai",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({task:"thread",thread,model:($("#aimodel")?.value||"flash")})});
+    if(!r.ok) throw new Error(); const a=await r.json(); a._meta={model:modelLabel(),task:"pasted thread",ts:new Date().toISOString()}; a._status="needs_review"; a._category="";
+    state.article=a; out.innerHTML=articleHTML(a); wireArticle(a);
+  }catch(e){ out.innerHTML=`<div class="empty"><h3>AI backend not enabled yet.</h3><p>Set <code>NVIDIA_API_KEY</code> in the Vercel project to generate from a thread.</p></div>`; }
+}
+function emptyGen(){return `<div class="empty enter"><h3>The article appears here.</h3><p>Fill in the resolution on the left and generate. You will get a structured KB article you can copy as Markdown, download, or save to your library.</p><p class="note">Tip: hit "See an example" to view the format before you write anything.</p></div>`;}
+async function gen(){
+  const out=$("#out");
+  const body={category:$("#cat").value,issue:$("#issue").value,tried:$("#tried").value,fixed:$("#fixed").value,model:($("#aimodel")?.value||"flash")};
+  if(!body.issue.trim()&&!body.fixed.trim()){out.innerHTML=`<div class="empty"><h3>Add a little more.</h3><p>Tell me at least the issue and what fixed it, then generate.</p></div>`;return;}
+  out.innerHTML=`<div class="empty"><h3>Writing the article…</h3><p class="note">Drafting symptoms, root cause, fix steps, prevention and tags.</p></div>`;
+  try{
+    const r=await fetch("/api/ai",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+    if(!r.ok) throw new Error(String(r.status));
+    const a=await r.json(); a._meta={model:modelLabel(),task:"structured fields",ts:new Date().toISOString()}; a._status="needs_review"; a._category=$("#cat").value;
+    state.article=a; out.innerHTML=articleHTML(a); wireArticle(a);
+  }catch(e){
+    out.innerHTML=`<div class="empty"><h3>AI backend not enabled yet.</h3><p>This tool generates the article with an LLM through a serverless function. Set <code>NVIDIA_API_KEY</code> in the Vercel project to switch it on.</p><p class="note">In the meantime, hit "See an example" to view the output format.</p></div>`;
+  }
+}
+
+async function libraryView(){
+  main.innerHTML=`<div class="view"><div class="empty"><h3>Loading library…</h3></div></div>`;
+  const items=await listArticles(); state.libCache=items;
+  if(!items.length){main.innerHTML=`<div class="view enter"><div class="empty"><h3>Your library is empty.</h3><p>Generate an article and click "Save to library". Articles persist to Supabase when it is configured, otherwise to this browser.</p></div></div>`;return;}
+  const find=id=>state.libCache.find(x=>x.id===id);
+  const freq={}; items.forEach(a=>(a.tags||[]).forEach(t=>{const k=String(t).toLowerCase();freq[k]=(freq[k]||0)+1;}));
+  const topTags=Object.keys(freq).sort((x,y)=>freq[y]-freq[x]).slice(0,8);
+  const q=(state.query||"").toLowerCase().trim(); const f=state.filter;
+  const match=a=>{
+    if(f && !(a.tags||[]).some(t=>String(t).toLowerCase()===f)) return false;
+    if(!q) return true;
+    const hay=[a.title,a.symptoms,a.root_cause,a.prevention,(a.tags||[]).join(" "),(a.fix_steps||[]).join(" ")].join(" ").toLowerCase();
+    return hay.includes(q);
+  };
+  const shown=items.filter(match);
+  const tools=`<div class="libtools"><input class="search" id="libq" placeholder="Search title, tags, symptoms, fix…" value="${esc(state.query||"")}"><button class="btn btn-ghost" id="exp">Export library (JSON)</button></div>`;
+  const chips=`<div class="chips"><span class="chip ${!f?"on":""}" data-tag="">All (${items.length})</span>${topTags.map(t=>`<span class="chip ${f===t?"on":""}" data-tag="${esc(t)}">${esc(t)} (${freq[t]})</span>`).join("")}</div>`;
+  const list=shown.length?shown.map(a=>`<div class="libitem" data-id="${esc(a.id)}">
+      <div class="lt">${esc(a.title)} ${badgeHTML(a)}</div>
+      <div class="lm">${(a.tags||[]).join(" · ")} · saved ${new Date(a.created_at||a.ts||Date.now()).toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"})}</div>
+      <div class="lb"><button class="btn btn-ghost open" data-id="${esc(a.id)}">Open</button><button class="btn btn-ghost copy" data-id="${esc(a.id)}">Copy Markdown</button>${a._status==="needs_review"?`<button class="btn btn-ghost appr" data-id="${esc(a.id)}">Approve</button>`:``}<button class="btn btn-ghost del" data-id="${esc(a.id)}">Delete</button></div>
+    </div>`).join(""):`<div class="empty"><h3>No matches.</h3><p>Nothing matches that search or filter. Clear it to see all ${items.length} notes.</p></div>`;
+  main.innerHTML=`<div class="view enter">${tools}${chips}${list}</div>`;
+  const qel=$("#libq");
+  if(qel){let t;qel.addEventListener("input",()=>{clearTimeout(t);t=setTimeout(()=>{const v=qel.value;state.query=v;render();const n=$("#libq");if(n){n.focus();n.value=v;try{n.setSelectionRange(v.length,v.length);}catch(e){}}},220);});}
+  const ex=$("#exp"); if(ex)ex.addEventListener("click",()=>{const blob=new Blob([JSON.stringify(items,null,2)],{type:"application/json"});const el=document.createElement("a");el.href=URL.createObjectURL(blob);el.download="resolve-notes-library.json";el.click();URL.revokeObjectURL(el.href);});
+  main.querySelectorAll(".chip").forEach(c=>c.addEventListener("click",()=>{state.filter=c.dataset.tag||null;render();}));
+  main.querySelectorAll(".open").forEach(b=>b.addEventListener("click",()=>{state.article=find(b.dataset.id);setView("generate");}));
+  main.querySelectorAll(".copy").forEach(b=>b.addEventListener("click",async()=>{await navigator.clipboard.writeText(markdown(find(b.dataset.id)));b.textContent="Copied";setTimeout(()=>b.textContent="Copy Markdown",1400);}));
+  main.querySelectorAll(".appr").forEach(b=>b.addEventListener("click",async()=>{await updateArticle(b.dataset.id,{_status:"reviewed",reviewed_at:new Date().toISOString()});render();}));
+  main.querySelectorAll(".del").forEach(b=>b.addEventListener("click",async()=>{await removeArticle(b.dataset.id);render();}));
+}
+
+function referenceView(){
+  main.innerHTML=`<div class="view ref enter">
+    <h2>What it produces</h2>
+    <p>Every article follows the same shape so the knowledge base stays consistent: a specific <b>title</b>, the <b>symptoms</b> a user would recognise, the real <b>root cause</b>, numbered <b>fix steps</b>, a one-line <b>prevention</b> note, and <b>tags</b> for search.</p>
+    <h2>Reasoning receipt and review</h2>
+    <p>When the article is drafted by a model, it carries a short <b>reasoning receipt</b>: which model ran, what it read (your structured fields or a pasted thread) and when. The structure is fixed by the app; only the wording comes from the model. Every AI draft is saved as <b>needs review</b> and stays that way until a person clicks <b>Approve</b>, so nothing reaches the team as fact until a human has checked it.</p>
+    <h2>Search, filter and related notes</h2>
+    <p>The library has full-text search and one-click tag filters, and an open article lists <b>related notes</b> that share its tags, so a recurring fault surfaces its own history. This is how the knowledge base feeds the diagnostic tools: a fault at a site can pull up the notes already written for that symptom.</p>
+    <h2>Connecting it to the other tools</h2>
+    <p>resolve-notes is the knowledge spine of the wider IT Ops set. It links by plain URL, with no backend: <code>?view=library</code> opens the library, <code>?q=printer</code> opens it pre-searched, and <code>?tag=gateway</code> opens it filtered to one tag, so net-doctor can deep-link straight to the history for a symptom. You can also <b>export the whole library as JSON</b> for another tool to read, and a same-page embed can call <code>window.resolveNotes.search("gateway")</code>.</p>
+    <h2>Where your data goes</h2>
+    <p>The library is stored in <b>your browser</b> and stays on your device. The only thing that leaves is the text you submit for an article, which goes to the model API to draft the wording. Nothing is sent anywhere else, which keeps it simple to reason about for POPIA. For a shared team knowledge base, set the Supabase hook in the source and the same app persists to a database protected by row-level security.</p>
+    <h2>Example output (Markdown)</h2>
+    <pre class="md">${esc(markdown(SAMPLE))}</pre>
+    <h2>How it works</h2>
+    <p>The structure is enforced by the app; the wording is generated by an LLM through a small serverless function, with the API key kept server-side. The model is switchable (DeepSeek v4 Flash, DeepSeek v4 Pro, MiniMax M3); Flash is the default because it answers fast enough to wait on. With no key set the app still runs: use "See an example" to view the exact output format offline.</p>
+  </div>`;
+}
+
+function render(){if(state.view==="generate")generateView();else if(state.view==="library")libraryView();else referenceView();}
+(function initFromURL(){try{const p=new URLSearchParams(location.search);const q=p.get("q"),tag=p.get("tag"),v=p.get("view");if(q){state.query=q;state.view="library";}if(tag){state.filter=tag.toLowerCase();state.view="library";}if(v&&["generate","library","reference"].includes(v))state.view=v;}catch(e){}})();
+document.querySelectorAll(".nav a").forEach(a=>a.classList.toggle("active",a.dataset.view===state.view));
+window.resolveNotes={all:()=>lsList(),search:q=>{const s=String(q||"").toLowerCase();return lsList().filter(a=>[a.title,(a.tags||[]).join(" "),a.symptoms,a.root_cause].join(" ").toLowerCase().includes(s));}};
+render();
+</script>
+</body>
+</html>
