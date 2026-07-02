@@ -70,8 +70,8 @@ html[data-theme="ink-room"]{
   --focus:0 0 0 2px var(--bg),0 0 0 4px var(--accent);
 }
 
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.6;-webkit-font-smoothing:antialiased;transition:background var(--motion)}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.6;-webkit-font-smoothing:antialiased;transition:background var(--motion);overflow-x:clip}
 .wrap{max-width:var(--page-max);margin:0 auto;padding:0 clamp(16px,4vw,32px)}
 a{color:inherit}
 
@@ -133,7 +133,7 @@ button.btn:focus-visible{outline:none;box-shadow:var(--focus)}
 .article{background:var(--surface);border:1px solid var(--line-soft);border-radius:var(--radius-lg);box-shadow:var(--shadow-md);padding:36px clamp(20px,4vw,40px);position:relative;overflow:hidden}
 .article::before{content:"";position:absolute;top:0;left:0;right:0;height:6px;background:repeating-linear-gradient(90deg,var(--accent) 0 14px,transparent 14px 22px)}
 .article .kbtag{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent-text)}
-.article h2{font-family:var(--sans);font-weight:700;font-size:clamp(1.5rem,1.2rem + 1.4vw,2rem);line-height:1.12;margin:12px 0 0;letter-spacing:-.02em}
+.article h2{overflow-wrap:anywhere;font-family:var(--sans);font-weight:700;font-size:clamp(1.5rem,1.2rem + 1.4vw,2rem);line-height:1.12;margin:12px 0 0;letter-spacing:-.02em}
 .article h3{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute);margin:28px 0 8px;display:flex;align-items:center;gap:10px}
 .article h3::after{content:"";flex:1;height:1px;background:var(--line-soft)}
 .article p{margin:0;font-size:15.5px;color:var(--ink);line-height:1.65;max-width:66ch}
@@ -177,6 +177,7 @@ pre.md{font-family:var(--mono);font-size:12.5px;background:var(--paper);border-r
 .enter{opacity:0;transform:translateY(10px);animation:rise 420ms var(--emph) forwards}
 @keyframes rise{to{opacity:1;transform:none}}
 @media (max-width:560px){
+  input,select,textarea{font-size:16px}
   .topbar .row{padding:12px 16px}
   .article{padding:28px 20px}
   pre.md{font-size:11.5px}
