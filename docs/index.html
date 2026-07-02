@@ -78,7 +78,8 @@ a{color:inherit}
 /* ── nav: marker-highlight tabs ── */
 .topbar{position:sticky;top:0;z-index:30;background:color-mix(in srgb,var(--bg) 90%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line-soft)}
 .topbar .row{max-width:var(--page-max);margin:0 auto;padding:14px clamp(16px,4vw,32px);display:flex;align-items:center;gap:16px}
-.brand{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:400;font-size:1.15rem;letter-spacing:.04em;text-transform:uppercase}
+.brand{flex:none;display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:400;font-size:1.15rem;letter-spacing:.04em;text-transform:uppercase}
+@media (max-width:480px){.brand .btxt{display:none}}
 .brand .dot{width:10px;height:10px;border-radius:2px;background:var(--accent);transform:rotate(8deg)}
 .nav{display:flex;gap:8px;margin-left:auto;align-items:center;overflow-x:auto;scrollbar-width:none}
 .nav::-webkit-scrollbar{display:none}
@@ -196,7 +197,7 @@ footer a:focus-visible{outline:none;box-shadow:var(--focus)}
 <body>
 <div class="topbar">
   <div class="row">
-    <div class="brand"><span class="dot"></span> resolve-notes</div>
+    <div class="brand"><span class="dot"></span><span class="btxt">resolve-notes</span></div>
     <button class="hamb" id="hamb" aria-label="Menu" hidden><span></span><span></span><span></span></button>
     <nav class="nav" id="nav">
       <a data-view="generate" class="active">Generate</a>
