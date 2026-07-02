@@ -1,0 +1,73 @@
+/* ════════════════════════════════════════════════════════════════════
+   RESOLVE-NOTES v2 · "THE PRINT SHOP" DESIGN SYSTEM — TOKENS
+   Project: resolve-notes · github.com/Kabelo-Theko/resolve-notes-
+   Persona: fix it once, write it down, print it for the team. Warm
+   paper, raspberry ink, Anton caps. Every AI draft is receipted and
+   review-gated before the team relies on it.
+   Themes on html[data-theme]: paper (default) · ink-room (dark).
+   Type: Anton (display caps) · Schibsted Grotesk (text + article
+   titles) · IBM Plex Mono (labels, tags, receipts).
+   Legacy aliases (--serif, --paper) kept for the engine's markup.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ════════════════════════════════════════════════════════════════
+   RESOLVE-NOTES v2 · "THE PRINT SHOP" — fix it once, write it down,
+   print it for the team. Warm paper, raspberry ink, Anton caps.
+   Every AI draft is PRINTED MATTER: receipted, reviewed, approved.
+   Themes: paper (default) · ink-room (dark)
+   ════════════════════════════════════════════════════════════════ */
+:root{
+  --display:"Anton",Impact,sans-serif;
+  --serif:"Schibsted Grotesk",system-ui,sans-serif; /* legacy alias: headings */
+  --sans:"Schibsted Grotesk",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+  --radius:12px;--radius-lg:18px;--radius-pill:999px;
+  --motion:300ms cubic-bezier(.2,0,0,1);
+  --spring:cubic-bezier(.34,1.26,.5,1);
+  --emph:cubic-bezier(.05,.7,.1,1);
+  --page-max:1080px;
+}
+:root,html[data-theme="paper"]{
+  color-scheme:light;
+  --bg:#FAF7F1;              /* warm print paper        */
+  --surface:#FFFEFB;
+  --paper:#F1EDE4;           /* legacy alias: wells     */
+  --line:rgba(34,29,38,.13);
+  --line-soft:rgba(34,29,38,.08);
+  --ink:#221D26;             /* 15.4:1                  */
+  --soft:#5A5361;            /* 7.3:1 on card           */
+  --mute:#736B7C;
+  --accent:#D6104F;          /* raspberry ink           */
+  --accent-press:#B50D42;
+  --accent-text:#C00D47;     /* 5.8:1 on paper          */
+  --accent-soft:rgba(214,16,79,.08);
+  --on-accent:#FFF5F8;       /* 4.9:1                   */
+  --review:#9A5B1E;   --review-bg:rgba(176,108,32,.12);
+  --ok:#1E6E48;       --ok-bg:rgba(30,110,72,.10);
+  --shadow:0 1px 2px rgba(34,29,38,.05),0 4px 14px rgba(34,29,38,.06);
+  --shadow-md:0 14px 34px -12px rgba(34,29,38,.18);
+  --focus:0 0 0 2px var(--bg),0 0 0 4px var(--accent);
+  --accent-press-legacy:var(--accent-press);
+}
+html[data-theme="ink-room"]{
+  color-scheme:dark;
+  --bg:#16121A;
+  --surface:#221C28;
+  --paper:#0F0C13;
+  --line:rgba(240,234,242,.13);
+  --line-soft:rgba(240,234,242,.08);
+  --ink:#F0EAF2;             /* 15.6:1                  */
+  --soft:#BBB2C4;            /* 8.1:1 on card           */
+  --mute:#948BA0;
+  --accent:#FF7BA9;          /* pink plate              */
+  --accent-press:#FF98BC;
+  --accent-text:#FF7BA9;     /* 7.6:1                   */
+  --accent-soft:rgba(255,123,169,.10);
+  --on-accent:#3A0A1E;       /* 7.0:1                   */
+  --review:#E9B96A;   --review-bg:rgba(233,185,106,.10);
+  --ok:#83CFA0;       --ok-bg:rgba(131,207,160,.10);
+  --shadow:0 1px 3px rgba(0,0,0,.4);
+  --shadow-md:0 14px 34px rgba(0,0,0,.5);
+  --focus:0 0 0 2px var(--bg),0 0 0 4px var(--accent);
+}
+
