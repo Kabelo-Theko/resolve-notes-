@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>resolve-notes — solve it once, print it forever</title>
+<meta name="description" content="resolve-notes turns every closed ticket into a stamped, searchable print — the fix, the cause, the gotcha — written once by the person who actually solved it, findable by the next person at 2am.">
+<meta property="og:title" content="resolve-notes — solve it once, print it forever">
+<meta property="og:description" content="Resolved tickets become stamped, searchable knowledge prints — cited to their ticket, signed by their fixer.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='10' fill='%23FAF7F1'/%3E%3Crect x='10' y='12' width='44' height='8' fill='%231D1A16'/%3E%3Crect x='10' y='26' width='30' height='5' rx='2' fill='%23D6104F'/%3E%3Crect x='10' y='37' width='38' height='4' rx='2' fill='%231D1A16' opacity='.35'/%3E%3Crect x='10' y='46' width='24' height='4' rx='2' fill='%231D1A16' opacity='.35'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Schibsted+Grotesk:ital,wght@0,400;0,500;0,700;1,400&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+@layer reset, tokens, base, components, utilities;
+@layer reset {
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;min-width:0}
+  html{-webkit-text-size-adjust:100%}
+  body{line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:clip}
+  img,svg{display:block;max-width:100%}
+  a{color:inherit;text-decoration:none}
+  button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+  :focus:not(:focus-visible){outline:none}
+  :focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:3px}
+  ::selection{background:var(--red);color:#fff}
+  @media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+}
+@layer tokens {
+  :root{
+    color-scheme:light;
+    --bg:#FAF7F1; --bg-2:#F1EBDF; --surface:#FFFFFF;
+    --ink:#1D1A16; --soft:#544F47; --mute:#635D53;
+    --line:#E5DECF; --line-strong:#D0C7B2;
+    --red:#D6104F; --red-text:#B00D42; --on-red:#FFFFFF; --red-tint:#D6104F14;
+    --hl:#FFE24A66;
+    --ok:#256B47; --ok-tint:#256B471C;
+    --focus:#B00D42;
+    --sh-1:0 1px 2px #1d1a1610, 0 3px 10px #1d1a160c;
+    --sh-2:0 8px 24px #1d1a1618, 0 20px 46px #1d1a1610;
+    --r-xs:2px; --r-sm:4px; --r-md:8px; --r-lg:14px;
+    --e-micro:cubic-bezier(.2,0,0,1); --e-ui:cubic-bezier(.32,.72,0,1);
+    --e-large:cubic-bezier(.05,.7,.1,1); --e-stamp:cubic-bezier(.34,1.4,.5,1);
+    --max:1120px;
+  }
+}
+@layer base {
+  body{background:var(--bg);color:var(--ink);font-family:"Schibsted Grotesk",system-ui,sans-serif}
+  h1,h2,h3{font-family:"Anton","Arial Narrow",sans-serif;font-weight:400;line-height:1;
+    letter-spacing:.005em;text-wrap:balance;text-transform:uppercase}
+  p{text-wrap:pretty}
+  .mono{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+  .wrap{max-width:var(--max);margin-inline:auto;padding-inline:clamp(20px,6vw,64px)}
+  section{padding-block:clamp(56px,9vw,116px)}
+  .kicker{font-family:"IBM Plex Mono",monospace;font-size:.72rem;letter-spacing:.2em;
+    text-transform:uppercase;color:var(--red-text);font-weight:600}
+}
+@layer components {
+  .skip{position:absolute;left:-9999px;top:0;z-index:100;background:var(--red);
+    color:var(--on-red);padding:12px 16px;border-radius:0 0 8px 0;font-weight:700}
+  .skip:focus{left:0}
+  /* nav — marker-highlight tabs */
+  .nav{position:sticky;top:0;z-index:50;background:color-mix(in oklab,var(--bg) 90%,transparent);
+    backdrop-filter:blur(10px);border-bottom:2px solid var(--ink)}
+  .nav .row{display:flex;align-items:center;gap:16px;height:64px}
+  .brand{display:flex;align-items:center;gap:12px;font-family:"Anton",sans-serif;
+    font-size:1.2rem;text-transform:uppercase;letter-spacing:.02em;flex:none}
+  .bmark{width:26px;height:26px;background:var(--ink);flex:none;display:grid;place-items:center}
+  .bmark i{width:14px;height:3px;background:var(--red);display:block}
+  .nav .links{display:flex;gap:16px;margin-left:auto}
+  .nav .links a{font-weight:700;font-size:.86rem;color:var(--soft);position:relative;
+    padding:4px 2px;transition:color .15s var(--e-micro)}
+  .nav .links a::after{content:"";position:absolute;left:-4px;right:-4px;bottom:2px;height:10px;
+    background:var(--hl);z-index:-1;transform:scaleX(0);transform-origin:left;
+    transition:transform .18s var(--e-ui)}
+  .nav .links a:hover{color:var(--ink)}
+  .nav .links a:hover::after{transform:scaleX(1)}
+  .btn{display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:.92rem;
+    padding:12px 24px;border-radius:var(--r-sm);transition:transform .13s var(--e-micro),box-shadow .2s var(--e-ui)}
+  .btn-primary{background:var(--red);color:var(--on-red);box-shadow:var(--sh-1)}
+  .btn-primary:hover{transform:translateY(-2px);box-shadow:var(--sh-2)}
+  .btn-primary:active{transform:scale(.98)}
+  .btn-ghost{border:2px solid var(--ink);color:var(--ink)}
+  .btn-ghost:hover{background:var(--ink);color:var(--bg);transform:translateY(-1px)}
+  .btn svg{width:15px;height:15px;stroke:currentColor;stroke-width:2.4;fill:none;transition:transform .15s var(--e-micro)}
+  .btn:hover svg{transform:translateX(3px)}
+  /* hero */
+  .hero{padding-top:clamp(44px,6vw,84px);padding-bottom:clamp(48px,8vw,100px)}
+  .hero-grid{display:grid;grid-template-columns:1.02fr .98fr;gap:clamp(32px,5vw,64px);align-items:center}
+  .hero h1{font-size:clamp(3rem,8vw,6.4rem);color:var(--ink)}
+  .hero h1 em{font-style:normal;color:var(--red)}
+  .lede{font-size:clamp(1.04rem,1.6vw,1.2rem);color:var(--soft);max-width:46ch;margin-top:20px}
+  .cta-row{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:24px}
+  .chip{display:inline-flex;align-items:center;gap:8px;font-size:.8rem;font-weight:600;
+    color:var(--soft);background:var(--surface);border:1px solid var(--line);
+    padding:8px 16px;border-radius:var(--r-sm)}
+  .chip svg{width:14px;height:14px;stroke:var(--ok);stroke-width:2.4;fill:none;flex:none;
+    stroke-linecap:round;stroke-linejoin:round}
+  /* the print */
+  .print{position:relative;background:var(--surface);border:1px solid var(--line-strong);
+    border-radius:var(--r-sm);box-shadow:var(--sh-2)}
+  .strip{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 16px;
+    background:var(--ink);color:#F4EFE6;padding:12px 128px 12px 20px;border-radius:3px 3px 0 0}
+  .strip .no{font-family:"IBM Plex Mono",monospace;font-size:.74rem;letter-spacing:.12em}
+  .strip .ed{font-family:"IBM Plex Mono",monospace;font-size:.68rem;color:#B7AD9C}
+  .print .title{font-family:"Anton",sans-serif;text-transform:uppercase;font-size:1.4rem;
+    line-height:1.1;padding:16px 20px 4px;letter-spacing:.01em}
+  .print .meta{font-family:"IBM Plex Mono",monospace;font-size:.7rem;color:var(--mute);
+    padding:6px 20px 12px;display:flex;flex-wrap:wrap;gap:6px 16px}
+  .print .body{padding:4px 20px 16px;font-size:.94rem;color:var(--soft);display:grid;gap:12px}
+  .print .body b{color:var(--ink)}
+  .print .hl{background:var(--hl);padding:1px 4px;border-radius:2px;color:var(--ink);font-weight:600}
+  .print .gotcha{border-left:4px solid var(--red);padding:12px 16px;background:var(--red-tint);
+    border-radius:0 var(--r-sm) var(--r-sm) 0;font-size:.9rem;color:var(--ink)}
+  .print .gotcha .g{font-family:"IBM Plex Mono",monospace;font-size:.64rem;letter-spacing:.16em;
+    color:var(--red-text);display:block;margin-bottom:4px;font-weight:600}
+  .print .tags{display:flex;flex-wrap:wrap;gap:6px;padding:0 20px 16px}
+  .print .tag{font-family:"IBM Plex Mono",monospace;font-size:.68rem;color:var(--soft);
+    border:1px solid var(--line-strong);border-radius:999px;padding:4px 12px}
+  .stamp{position:absolute;top:12px;right:16px;transform:rotate(8deg);
+    border:3px solid var(--red);color:var(--red);font-family:"Anton",sans-serif;
+    font-size:1rem;letter-spacing:.14em;padding:6px 16px;border-radius:4px;
+    text-transform:uppercase;opacity:.92;background:#fff;pointer-events:none}
+  .reveal.in .stamp{animation:thunk .5s var(--e-stamp) 1}
+  @keyframes thunk{0%{transform:rotate(8deg) scale(1.6);opacity:0}
+    60%{transform:rotate(8deg) scale(.95);opacity:1}100%{transform:rotate(8deg) scale(1)}}
+  /* sections */
+  .sec-head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;
+    flex-wrap:wrap;margin-bottom:clamp(28px,4vw,48px)}
+  .sec-head h2{font-size:clamp(2rem,4.6vw,3.4rem)}
+  .run{font-family:"IBM Plex Mono",monospace;font-size:.72rem;color:var(--red-text);
+    letter-spacing:.18em;display:inline-block;margin-bottom:12px;
+    border:1px solid var(--red-text);padding:4px 12px;border-radius:3px}
+  .sec-head p{color:var(--soft);max-width:42ch}
+  /* tension */
+  .tension{background:var(--ink);color:#F4EFE6}
+  .tension .big{font-family:"Anton",sans-serif;text-transform:uppercase;
+    font-size:clamp(2rem,5vw,3.8rem);line-height:1.02;max-width:18ch}
+  .tension .big u{text-decoration:none;color:#FF5C8A}
+  .tension .sub{color:#BDB4A3;max-width:54ch;margin-top:16px}
+  .dupe{margin-top:32px;display:grid;gap:1px;max-width:560px;background:#3A362E;
+    border:1px solid #3A362E;border-radius:var(--r-md);overflow:hidden}
+  .dupe .d{background:#26231E;padding:12px 16px;display:flex;gap:16px;align-items:baseline;
+    font-family:"IBM Plex Mono",monospace;font-size:.78rem}
+  .dupe .d span:first-child{color:#8F8672;flex:none}
+  .dupe .d span:nth-child(2){color:#F4EFE6}
+  .dupe .d .cost{margin-left:auto;color:#FF5C8A;flex:none}
+  /* provability */
+  .prov-grid{display:grid;grid-template-columns:1.06fr .94fr;gap:clamp(28px,4vw,52px);align-items:start}
+  .aside h3{font-family:"Anton",sans-serif;text-transform:uppercase;font-size:1.5rem;margin-bottom:12px}
+  .aside p{color:var(--soft);font-size:.98rem;max-width:44ch}
+  .aside p+p{margin-top:12px}
+  .aside .note{margin-top:16px;padding:16px 16px;background:var(--red-tint);border-radius:var(--r-sm);
+    font-size:.9rem;color:var(--ink);border-left:4px solid var(--red)}
+  .arch{background:var(--surface);border:1px solid var(--line-strong);border-radius:var(--r-sm);overflow:hidden}
+  .arch .ah{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;padding:12px 20px;
+    border-bottom:2px solid var(--ink);font-family:"IBM Plex Mono",monospace;font-size:.72rem;color:var(--mute)}
+  .arow{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:baseline;
+    padding:12px 20px;border-bottom:1px solid var(--line)}
+  .arow:last-child{border-bottom:none}
+  .arow .no{font-family:"IBM Plex Mono",monospace;font-size:.7rem;color:var(--mute);white-space:nowrap}
+  .arow .t{font-weight:600;font-size:.92rem}
+  .arow .t small{display:block;font-weight:400;color:var(--mute);font-size:.76rem;margin-top:2px}
+  .arow .by{font-family:"IBM Plex Mono",monospace;font-size:.7rem;color:var(--mute);white-space:nowrap}
+  /* vitals */
+  .vitals{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);
+    border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden}
+  .vital{background:var(--surface);padding:24px 24px}
+  .vital .n{font-family:"Anton",sans-serif;font-size:clamp(2rem,4.4vw,3.1rem);line-height:.95;text-transform:uppercase}
+  .vital .n em{font-style:normal;color:var(--red)}
+  .vital .c{font-size:.88rem;color:var(--soft);margin-top:12px}
+  .quiet{margin-top:24px;display:flex;align-items:center;gap:16px;background:var(--ok-tint);
+    border:1px solid color-mix(in oklab,var(--ok) 36%,transparent);border-radius:var(--r-md);padding:20px 24px}
+  .quiet svg{width:22px;height:22px;stroke:var(--ok);stroke-width:2.4;fill:none;flex:none;
+    stroke-linecap:round;stroke-linejoin:round}
+  .quiet b{color:var(--ink)} .quiet span{color:var(--soft);font-size:.94rem}
+  /* CTA */
+  .band{background:var(--ink);color:#F4EFE6;border-radius:var(--r-lg);text-align:center;
+    padding:clamp(40px,6vw,72px) clamp(28px,5vw,64px);position:relative;overflow:hidden}
+  .band::before{content:"";position:absolute;left:-80px;bottom:-140px;width:340px;height:340px;
+    border-radius:50%;background:radial-gradient(closest-side,#d6104f2e,transparent 72%);pointer-events:none}
+  .band h2{font-size:clamp(2.2rem,5vw,4rem);color:#fff}
+  .band h2 em{font-style:normal;color:#FF5C8A}
+  .band p{color:#BDB4A3;max-width:46ch;margin:16px auto 0}
+  .band .cta-row{justify-content:center}
+  .band .btn-ghost{border-color:#4E4738;color:#F4EFE6}
+  .band .btn-ghost:hover{background:#F4EFE6;color:var(--ink);border-color:#F4EFE6}
+  footer{border-top:1px solid var(--line);padding-block:36px;color:var(--mute);font-size:.86rem}
+  footer .row{display:flex;flex-wrap:wrap;gap:16px 28px;align-items:center}
+  footer a{color:var(--soft)} footer a:hover{color:var(--ink)}
+  footer .sp{margin-left:auto}
+  .suite{border-top:1px dashed var(--line-strong);margin-top:24px;padding-top:16px;
+    display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 20px}
+  .suite .sl{font-family:"IBM Plex Mono",monospace;font-size:.68rem;letter-spacing:.18em;
+    color:var(--mute);text-transform:uppercase;flex:none}
+  .suite a{font-family:"IBM Plex Mono",monospace;font-size:.74rem;color:var(--soft);
+    border-bottom:1px solid var(--line-strong)}
+  .suite a:hover{color:var(--red-text);border-color:var(--red-text)}
+  .reveal{opacity:0;transform:translateY(18px);transition:opacity .6s var(--e-large),transform .6s var(--e-large)}
+  .reveal.in{opacity:1;transform:none}
+}
+@layer utilities {
+  @media (max-width:940px){
+    .hero-grid,.prov-grid{grid-template-columns:1fr}
+    .hero-visual{order:-1;max-width:560px}
+    .vitals{grid-template-columns:repeat(2,1fr)}
+  }
+  @media (max-width:560px){
+    input,select,textarea{font-size:16px}
+    .nav .links{display:none}
+    .dupe .d .cost{display:none}
+    .arow{grid-template-columns:auto 1fr}
+    .arow .by{grid-column:2;justify-self:start}
+  }
+  @media (max-width:400px){ .brand .bt{display:none} }
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;
+      transition-duration:.01ms!important}
+    .reveal{opacity:1;transform:none}
+    .reveal.in .stamp{animation:none}
+  }
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#top">Skip to content</a>
+
+<header class="nav">
+  <div class="wrap row">
+    <a class="brand" href="#top" aria-label="resolve-notes home">
+      <span class="bmark" aria-hidden="true"><i></i></span><span class="bt">Print&nbsp;Shop</span>
+    </a>
+    <nav class="links" aria-label="Primary">
+      <a href="#press">The press</a>
+      <a href="#archive">The archive</a>
+      <a href="#promise">The promise</a>
+    </nav>
+    <a class="btn btn-primary" href="#start" style="margin-left:12px">Print the fix</a>
+  </div>
+</header>
+
+<main id="top">
+
+<section class="hero" aria-labelledby="h1">
+  <div class="wrap hero-grid">
+    <div class="reveal">
+      <span class="kicker">Resolved tickets → reusable knowledge</span>
+      <h1 id="h1" style="margin-top:16px">Solve it once. <em>Print it forever.</em></h1>
+      <p class="lede">resolve-notes turns every closed ticket into a stamped, searchable print — the fix, the cause, the gotcha — written once by the person who actually solved it, findable by the next person at 2am.</p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="#start">Print the fix
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        <a class="btn btn-ghost" href="#archive">Browse the archive</a>
+      </div>
+      <div class="chips" aria-label="What resolve-notes guarantees">
+        <span class="chip"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M8 12.5l2.6 2.6L16.5 9.5"/></svg>Every print cites its ticket</span>
+        <span class="chip"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M8 12.5l2.6 2.6L16.5 9.5"/></svg>Stamped by the human who fixed it</span>
+        <span class="chip"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M8 12.5l2.6 2.6L16.5 9.5"/></svg>Searchable by tag, text or ticket</span>
+      </div>
+    </div>
+
+    <div class="hero-visual reveal" role="img" aria-label="A knowledge print: the expired webhook secret fix from ticket 4821, with a highlighted fix line, a gotcha warning, and a RESOLVED stamp">
+      <div class="print">
+        <span class="stamp" aria-hidden="true">Resolved</span>
+        <div class="strip">
+          <span class="no">PRINT Nº 0047</span>
+          <span class="ed">first edition · Mar 12</span>
+        </div>
+        <div class="title">Checkout 500s: expired webhook secret</div>
+        <div class="meta mono">
+          <span>from ticket #4821</span><span>fixed by Sipho Dlamini</span><span>verified: error rate 6.1% → 0.2%</span>
+        </div>
+        <div class="body">
+          <p><b>Cause.</b> The payments webhook secret rotates yearly; the calendar reminder died with an old inbox.</p>
+          <p><b>Fix.</b> <span class="hl">Rotate the secret in vault/payments, then replay the dead-letter queue.</span> Recovery is complete in ~4 minutes.</p>
+          <div class="gotcha"><span class="g">THE GOTCHA</span>Replaying <b>before</b> rotating re-fails every event and doubles the queue. Rotate first. Ask Sipho how he knows.</div>
+        </div>
+        <div class="tags">
+          <span class="tag">payments</span><span class="tag">webhook</span><span class="tag">secrets</span><span class="tag">queue-replay</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="tension" aria-labelledby="tz">
+  <div class="wrap" style="padding-block:clamp(56px,8vw,104px)">
+    <span class="kicker" style="color:#FF5C8A">July, 02:14</span>
+    <p class="big" id="tz" style="margin-top:16px">The fix existed. It lived in <u>a closed tab.</u></p>
+    <p class="sub">#4821 was solved brilliantly in March — root cause found, clean fix, everyone moved on. The knowledge retired with the ticket. In July, a different engineer met the same failure and started from zero, at night, alone.</p>
+    <div class="dupe" role="img" aria-label="The same failure solved twice: four hours in March, a full day in July by someone else">
+      <div class="d"><span>Mar 12</span><span>#4821 · webhook secret expired — solved</span><span class="cost">4h, Sipho</span></div>
+      <div class="d"><span>Jul 02</span><span>#5203 · "checkout 500s again??" — re-solved from scratch</span><span class="cost">9h, Anele</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="press" aria-labelledby="hw">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div>
+        <span class="run">RUN Nº 01 · THE PRESS</span>
+        <h2 id="hw">Closing a ticket rolls the press.</h2>
+      </div>
+      <p>When a ticket resolves, resolve-notes drafts the print from what's already there — the thread, the diff, the metric that proved the fix — and hands it to the resolver for the stamp.</p>
+    </div>
+    <div class="prov-grid">
+      <div class="aside reveal">
+        <h3>Three blocks, no essay.</h3>
+        <p>A print is deliberately small: <b>cause</b>, <b>fix</b>, <b>gotcha</b>. Five minutes of the resolver's time while the context is still warm — not a documentation shift nobody scheduled.</p>
+        <p>The draft arrives pre-cited: the fix line links the diff, the verification links the metric, the gotcha quotes the thread. The resolver edits, then <b>stamps</b>. An unstamped print never enters the archive.</p>
+        <div class="note">The stamp is the whole trust model: every print is signed by the person who actually did the fixing — not by a model, not by a manager, not by "the team".</div>
+      </div>
+      <div class="reveal">
+        <div class="arch" aria-label="The citations attached to print number 47">
+          <div class="ah"><span>print Nº 0047 · citations</span><span>attached at press time</span></div>
+          <div class="arow"><span class="no">cite 01</span><span class="t">Ticket #4821 — full thread<small>the symptom, the dead ends, the aha</small></span><span class="by">linked</span></div>
+          <div class="arow"><span class="no">cite 02</span><span class="t">Diff — vault/payments rotation<small>the exact change that fixed it</small></span><span class="by">linked</span></div>
+          <div class="arow"><span class="no">cite 03</span><span class="t">Metric — checkout error rate<small>6.1% → 0.2% within 4 minutes</small></span><span class="by">linked</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="archive" style="background:var(--bg-2)" aria-labelledby="pv">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div>
+        <span class="run">RUN Nº 02 · THE ARCHIVE</span>
+        <h2 id="pv">Findable beats comprehensive.</h2>
+      </div>
+      <p>The archive is built for the 2am search, not the quarterly audit: tags, full text and ticket IDs, ranked by how often a print rescues someone.</p>
+    </div>
+    <div class="arch reveal" role="img" aria-label="Search results for the word webhook: three prints with their rescue counts">
+      <div class="ah"><span class="mono">search: "webhook"</span><span>3 prints</span></div>
+      <div class="arow"><span class="no">Nº 0047</span><span class="t">Checkout 500s: expired webhook secret<small>payments · secrets · rescued 6 people</small></span><span class="by">Mar 12</span></div>
+      <div class="arow"><span class="no">Nº 0031</span><span class="t">Webhook retries flooding staging<small>rate-limits · rescued 2 people</small></span><span class="by">Jan 28</span></div>
+      <div class="arow"><span class="no">Nº 0019</span><span class="t">Signature mismatch after provider migration<small>payments · rescued 4 people</small></span><span class="by">Nov 06</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="promise" aria-labelledby="vs">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div><span class="run">RUN Nº 03 · THE PROMISE</span><h2 id="vs">What the shop guarantees.</h2></div>
+      <p>The mechanics of the press — every print, every edition.</p>
+    </div>
+    <div class="vitals reveal">
+      <div class="vital"><div class="n">Cited</div><div class="c">every print links its ticket, diff and metric</div></div>
+      <div class="vital"><div class="n"><em>Stamped</em></div><div class="c">signed by the human who fixed it, or it doesn't ship</div></div>
+      <div class="vital"><div class="n">Small</div><div class="c">cause · fix · gotcha — five minutes, not a shift</div></div>
+      <div class="vital"><div class="n">Found</div><div class="c">tags, text and ticket IDs, ranked by rescues</div></div>
+    </div>
+    <div class="quiet reveal" role="status">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M8 12.5l2.6 2.6L16.5 9.5"/></svg>
+      <div><b>Every resolved ticket this month has its print.</b> <span>14 prints · 14 stamps · the July 02:14 search would have taken 40 seconds.</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="start" aria-labelledby="ct">
+  <div class="wrap">
+    <div class="band reveal">
+      <h2 id="ct">The next 2am deserves <em>your March fix.</em></h2>
+      <p>Connect your tracker, close a ticket, and watch the press roll its first print — cause, fix, gotcha, stamp.</p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="https://github.com/Kabelo-Theko/resolve-notes-" target="_blank" rel="noopener noreferrer">Print the fix
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        <a class="btn btn-ghost" href="#archive">Search the archive</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="row">
+      <a class="brand" href="#top" aria-label="resolve-notes"><span class="bmark" aria-hidden="true"><i></i></span><span class="bt">Print&nbsp;Shop</span></a>
+      <a href="#press">The press</a>
+      <a href="#archive">The archive</a>
+      <a href="https://github.com/Kabelo-Theko/resolve-notes-" target="_blank" rel="noopener noreferrer">Source</a>
+      <span class="sp mono" style="font-size:.72rem">Archive in-browser · AI drafts under review</span>
+    </div>
+    <div class="suite">
+      <span class="sl">Truth Guard suite</span>
+      <a href="https://github.com/Kabelo-Theko/ticket-triage" target="_blank" rel="noopener noreferrer">Dispatch</a>
+      <a href="https://github.com/Kabelo-Theko/onboard-kit" target="_blank" rel="noopener noreferrer">Welcome Kit</a>
+      <a href="https://github.com/Kabelo-Theko/slo-watch" target="_blank" rel="noopener noreferrer">Vanilla Ledger</a>
+      <a href="https://github.com/Kabelo-Theko/net-doctor" target="_blank" rel="noopener noreferrer">Field Guide</a>
+      <a href="https://github.com/Kabelo-Theko/requirements-forge" target="_blank" rel="noopener noreferrer">Story Studio</a>
+      <a href="https://github.com/Kabelo-Theko/incident-retro" target="_blank" rel="noopener noreferrer">Learning Board</a>
+      <a href="https://github.com/Kabelo-Theko/kabelo-theko-projects-portfolio" target="_blank" rel="noopener noreferrer">Portfolio</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var rm=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var els=[].slice.call(document.querySelectorAll(".reveal"));
+  function fire(el){el.classList.add("in");}
+  if(rm||!("IntersectionObserver"in window)){els.forEach(fire);return;}
+  var io=new IntersectionObserver(function(ents){
+    ents.forEach(function(e){if(e.isIntersecting){fire(e.target);io.unobserve(e.target);}});
+  },{threshold:.12,rootMargin:"-6% 0px"});
+  els.forEach(function(el){io.observe(el);});
+})();
+</script>
+</body>
+</html>
